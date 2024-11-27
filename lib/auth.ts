@@ -45,7 +45,7 @@ export class Auth {
     private verifySignature = (cookie: string, salt: string): boolean => {
         const [data, signature] = cookie.split('.')
         const expectedSignature = this.generateSignature(data, salt)
-        return signature === expectedSignature;
+        return signature === expectedSignature
     }
 
     private cleaner = (userId: string) => {
@@ -63,12 +63,14 @@ export class Auth {
         const { ttl, salt } = userData
         if (ttl < Date.now()) {
             this.delField(userId)
-            return false;
+            return false
         }
+
+        userData.ttl = Date.now() + this.#ttl
         if (!this.verifySignature(cookie, salt)) {
-            return false;
+            return false
         }
-        return true;
+        return true
     }
 
     setLoggedIn = (userId: string): string => {

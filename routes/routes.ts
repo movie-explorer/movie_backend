@@ -1,78 +1,93 @@
-import express from 'express';
-import { Database } from '../lib/db';
-import { Auth } from '../lib/auth';
+import { IncomingMessage, ServerResponse } from 'http'
+import { rootRoute } from './root'
+import { loginRoute } from './login'
+import { registerRoute } from './register'
+import { testRoute } from './test'
+import { logoutRoute } from './logout'
+import { favoritesRoute } from './favourites'
+import { groupsRoute } from './groups'
+import { followersRoute } from './followers'
+import { deleteRoute } from './deleteuser'
+import { profileRoute } from './profile'
 
-const router = express.Router();
-const db = new Database();
-const auth = new Auth('you will never guess this', 1 * 60 * 10000); // Secret for auth
+export const router = async (
+  req: IncomingMessage,
+  res: ServerResponse,
+  path: string
+): Promise<boolean> => {
+  if (req.method === 'GET') {
+    switch (path) {
+      case '/':
+        rootRoute(res)
+        return true
 
-router.get('/', (_req, res) => {
-  res.send('Hello World');
-});
+      case '/test':
+        testRoute(req, res)
+        return true
 
-// Login Route
-router.post('/login', async (req: any, res: any) => {
-  console.log(req.body);
-  const { username, password } = req.body;
+      case '/logout':
+        logoutRoute(req, res)
+        return true
 
-  if (!username || !password) {
-    return res.status(400).send('Missing username or password');
-  }
+      case '/favorites':
+        await favoritesRoute(req, res)
+        return true
 
-  try {
-    const loggedIn = await db.login(username, password);
 
-    if (!loggedIn) {
-      return res.status(401).send('Invalid credentials');
+      case '/groups':
+        await groupsRoute(req, res)
+        return true
+
+      case '/profile':
+        await profileRoute(req, res)
+        return true
+
+      default:
+        return false
     }
-
-    const authToken = auth.setLoggedIn(username);
-    console.log(`User ${username} logged in`);
-    return res.status(200).json({ message: 'Logged in successfully', token: authToken });
-  } catch (error) {
-    console.error('Login error:', error);
-    return res.status(500).send('Internal server error');
-  }
-});
-
-// Register Route
-router.post('/register', async (req: any, res: any) => {
-  const { username, password } = req.body;
-
-  if (!username || !password) {
-    return res.status(400).send('Missing username or password');
   }
 
-  try {
-    const userExists = await db.doesUserExist(username);
+  if (req.method === 'POST') {
+    switch (path) {
+      case '/login':
+        await loginRoute(req, res)
+        return true
 
-    if (userExists) {
-      return res.status(409).send('User already exists');
+      case '/register':
+        await registerRoute(req, res)
+        return true
+
+      case '/favorites':
+        await favoritesRoute(req, res)
+        return true
+
+      case '/groups':
+        await groupsRoute(req, res)
+        return true
+
+      case '/followers':
+        await followersRoute(req, res)
+        return true
+
+      default:
+        return false
     }
+  }
 
-    const userCreated = await db.register(username, password);  
+  if (req.method === 'DELETE') {
+    switch (path) {
+      case '/followers':
+        await followersRoute(req, res)
+        return true
 
-    if (!userCreated) {
-      return res.status(500).send('User registration failed');
+      case '/deleteme':
+        await deleteRoute(req, res)
+        return true
+
+      default:
+        return false
     }
-
-    console.log(`User ${username} registered`);
-    return res.status(201).send('User registered successfully');
-  } catch (error) {
-    console.error('Registration error:', error);
-    return res.status(500).send('Internal server error');
-  }
-});
-
-// Test Route
-router.get('/test', (req: any, res: any) => {
-  const token = req.headers.cookie;
-
-  if (!token || !auth.isUserLoggedin(token)) {
-    return res.status(401).send('Not logged in');
   }
 
-  res.status(200).send('You are logged in!');
-});
-
-export default router;
+  return false
+}

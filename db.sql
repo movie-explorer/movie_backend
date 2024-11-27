@@ -1,13 +1,57 @@
-CREATE TABLE IF NOT EXISTS users (
-    id SERIAL PRIMARY KEY,           
-    username VARCHAR(255) UNIQUE NOT NULL,
-    password VARCHAR(255) NOT NULL,    
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+CREATE TABLE User (
+    userID SERIAL PRIMARY KEY,
+    username VARCHAR NOT NULL,
+    email VARCHAR NOT NULL,
+    password VARCHAR NOT NULL,
+    createdAt TIMESTAMP NOT NULL,
+    updatedAt TIMESTAMP NOT NULL
 );
 
-CREATE INDEX IF NOT EXISTS idx_username ON users(username);
+CREATE TABLE Movie (
+    movieID SERIAL PRIMARY KEY,
+    title VARCHAR NOT NULL,
+    genre VARCHAR,
+    releaseDate DATE,
+    description TEXT,
+    rating DOUBLE PRECISION
+);
 
-ALTER TABLE users
-    ADD COLUMN IF NOT EXISTS email VARCHAR(255),
-    ADD COLUMN IF NOT EXISTS name VARCHAR(255);
+CREATE TABLE Review (
+    reviewID SERIAL PRIMARY KEY,
+    userID INT REFERENCES User(userID),
+    movieID INT REFERENCES Movie(movieID),
+    rating INT,
+    text TEXT,
+    createdAt TIMESTAMP NOT NULL,
+    updatedAt TIMESTAMP NOT NULL
+);
 
+CREATE TABLE FavoriteList (
+    listID SERIAL PRIMARY KEY,
+    userID INT REFERENCES User(userID),
+    movieID INT REFERENCES Movie(movieID),
+    createdAt TIMESTAMP NOT NULL,
+    updatedAt TIMESTAMP NOT NULL
+);
+
+CREATE TABLE Group (
+    groupID SERIAL PRIMARY KEY,
+    name VARCHAR NOT NULL,
+    ownerID INT REFERENCES User(userID),
+    createdAt TIMESTAMP NOT NULL,
+    updatedAt TIMESTAMP NOT NULL
+);
+
+CREATE TABLE GroupMember (
+    groupID INT REFERENCES Group(groupID),
+    userID INT REFERENCES User(userID),
+    joinedAt TIMESTAMP NOT NULL,
+    PRIMARY KEY (groupID, userID)
+);
+
+CREATE TABLE Follower (
+    followerID INT REFERENCES User(userID),
+    followedID INT REFERENCES User(userID),
+    followedAt TIMESTAMP NOT NULL,
+    PRIMARY KEY (followerID, followedID)
+);
