@@ -6,7 +6,7 @@ const port = 3000
 const handleCors = (res: ServerResponse) => {
   res.setHeader('Access-Control-Allow-Origin', '*')
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS, PUT, DELETE')
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization')
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, x-username')
   res.setHeader('Access-Control-Allow-Credentials', 'true')
 }
 
@@ -21,6 +21,7 @@ const serverHandler = async (req: IncomingMessage, res: ServerResponse): Promise
 
   const url = parse(req.url || '', true)
   const handled = await router(req, res, url.pathname || '')
+  console.log(req.url)
 
   if (!handled) {
     res.writeHead(404, { 'Content-Type': 'application/json' })

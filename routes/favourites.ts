@@ -1,5 +1,5 @@
 import { IncomingMessage, ServerResponse } from 'http'
-import { db } from '../connectors/shared' 
+import { db } from '../connectors/shared'
 
 export const favoritesRoute = async (req: IncomingMessage, res: ServerResponse): Promise<void> => {
   const sendResponse = (statusCode: number, data: any) => {
@@ -9,8 +9,9 @@ export const favoritesRoute = async (req: IncomingMessage, res: ServerResponse):
 
   const { method } = req
   const authHeader = req.headers['authorization']
+  const targetUsernameHeader = req.headers['x-username']
   let username = ''
-  
+
   if (authHeader) {
     try {
       const encodedUsername = authHeader.split('.')[0]
@@ -19,7 +20,7 @@ export const favoritesRoute = async (req: IncomingMessage, res: ServerResponse):
       console.warn('Failed to decode username from Authorization header:', error)
     }
   }
-  
+
   username = username || ''
   if (username === '') {
     sendResponse(400, { error: 'Username is required' })
@@ -31,13 +32,19 @@ export const favoritesRoute = async (req: IncomingMessage, res: ServerResponse):
     req.on('data', chunk => (body += chunk))
     req.on('end', async () => {
       try {
-        const { movieID } = JSON.parse(body)
+        const { movieID, title } = JSON.parse(body)
         if (!movieID) {
           sendResponse(400, { error: 'Movie ID is required' })
           return
         }
 
-        const success = await db.addToFavoriteList(username, movieID)
+        if (!title) {
+          sendResponse(400, { error: 'Movie title is required' })
+          return
+        }
+
+        const success = await db.addToFavoriteList(username, movieID, title)
+        console.log(username, movieID)
         if (success) {
           sendResponse(200, { message: 'Movie added to favorites' })
         } else {
@@ -49,12 +56,40 @@ export const favoritesRoute = async (req: IncomingMessage, res: ServerResponse):
     })
   } else if (method === 'GET') {
     try {
-      const favorites = await db.getFavoriteList(username)
+      const targetUsername = targetUsernameHeader ? targetUsernameHeader.toString() : username
+
+      if (!targetUsername) {
+        sendResponse(400, { error: 'Target username is required' })
+        return
+      }
+
+      const favorites =
+        targetUsername === username
+          ? await db.getFavoriteList(username)
+          : await db.getFavoriteList(targetUsername)
+
       sendResponse(200, { favorites })
     } catch (error) {
       sendResponse(500, { error: 'Internal server error' })
     }
-  } else {
+  } else if (method === 'DELETE') {
+    let body = ''
+    req.on('data', chunk => (body += chunk))
+    req.on('end', async () => {
+    try {
+      const { movieID } = JSON.parse(body)
+      if (!movieID) {
+        sendResponse(400, { error: 'Movie ID is required' })
+        return
+      }
+      await db.deleteFromFavoriteList(username, movieID)
+      sendResponse(200, { success: true })
+    } catch (error) {
+      sendResponse(500, { error: 'Internal server error' })
+    }
+  })
+}
+  else {
     sendResponse(405, { error: 'Method not allowed' })
   }
 }
